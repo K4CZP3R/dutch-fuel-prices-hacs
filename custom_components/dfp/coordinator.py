@@ -18,14 +18,12 @@ class DfpDataUpdateCoordinator(DataUpdateCoordinator):
     last_data = {}
     platforms = PLATFORMS
 
-
     def __init__(self, api_url: str, station_id: str, hass: HomeAssistant) -> None:
         super().__init__(
-            hass=hass, logger=LOGGER, name=DOMAIN, update_interval=timedelta(seconds=60)
+            hass=hass, logger=LOGGER, name=DOMAIN, update_interval=timedelta(minutes=30)
         )
         self.api_url = api_url
         self.station_id = station_id
-
 
     def _update(self):
         # tankstation_id = self.config_entry.options.get(CONF_STATION_ID)

@@ -4,7 +4,7 @@
   "documentation": "https://www.home-assistant.io/integrations/dfp",
   "iot_class": "cloud_polling",
   "issue_tracker": "https://www.home-assistant.io/integrations/dfp/issues",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "config_flow": true,
   "codeowners": [
     "@K4CZP3R"
