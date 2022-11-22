@@ -1,0 +1,15 @@
+{
+  "domain": "dfp",
+  "name": "Dutch Fuel Prices",
+  "documentation": "https://www.home-assistant.io/integrations/dfp",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://www.home-assistant.io/integrations/dfp/issues",
+  "version": "0.0.0",
+  "config_flow": true,
+  "codeowners": [
+    "@K4CZP3R"
+  ],
+  "requirements": [
+    "requests==2.28.1"
+  ]
+}

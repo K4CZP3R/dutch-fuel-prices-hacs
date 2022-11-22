@@ -1,20 +1,21 @@
 """Adds config flow for Blueprint."""
 from homeassistant import config_entries
 from homeassistant.core import callback
-from homeassistant.helpers.aiohttp_client import async_create_clientsession
 import voluptuous as vol
+import requests
 
-from .api import IntegrationBlueprintApiClient
 from .const import (
-    CONF_PASSWORD,
-    CONF_USERNAME,
+    CONF_API_URL,
+    CONF_STATION_ID,
     DOMAIN,
+    OPT_FUEL_TYPES,
+    OPT_STATION_NAME,
     PLATFORMS,
 )
 
 
-class BlueprintFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
-    """Config flow for Blueprint."""
+class DfpFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
+    """Config flow for Dfp."""
 
     VERSION = 1
     CONNECTION_CLASS = config_entries.CONN_CLASS_CLOUD_POLL
@@ -32,12 +33,17 @@ class BlueprintFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         #     return self.async_abort(reason="single_instance_allowed")
 
         if user_input is not None:
-            valid = await self._test_credentials(
-                user_input[CONF_USERNAME], user_input[CONF_PASSWORD]
+            valid = await self._test_tankstation(
+                user_input[CONF_API_URL], user_input[CONF_STATION_ID]
             )
-            if valid:
+            if valid is not None:
                 return self.async_create_entry(
-                    title=user_input[CONF_USERNAME], data=user_input
+                    title=valid[OPT_STATION_NAME],
+                    data=user_input,
+                    options={
+                        OPT_FUEL_TYPES: valid[OPT_FUEL_TYPES],
+                        OPT_STATION_NAME: valid[OPT_STATION_NAME],
+                    },
                 )
             else:
                 self._errors["base"] = "auth"
@@ -46,8 +52,8 @@ class BlueprintFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
         user_input = {}
         # Provide defaults for form
-        user_input[CONF_USERNAME] = ""
-        user_input[CONF_PASSWORD] = ""
+        user_input[CONF_API_URL] = "https://dfp.k4czp3r.xyz"
+        user_input[CONF_STATION_ID] = 0
 
         return await self._show_config_form(user_input)
 
@@ -62,23 +68,38 @@ class BlueprintFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             step_id="user",
             data_schema=vol.Schema(
                 {
-                    vol.Required(CONF_USERNAME, default=user_input[CONF_USERNAME]): str,
-                    vol.Required(CONF_PASSWORD, default=user_input[CONF_PASSWORD]): str,
+                    vol.Required(CONF_API_URL, default=user_input[CONF_API_URL]): str,
+                    vol.Required(CONF_STATION_ID, default=user_input[CONF_STATION_ID]): int,
                 }
             ),
             errors=self._errors,
         )
 
-    async def _test_credentials(self, username, password):
+    async def _test_tankstation(self, api_url, station_id) -> None | str:
         """Return true if credentials is valid."""
         try:
-            session = async_create_clientsession(self.hass)
-            client = IntegrationBlueprintApiClient(username, password, session)
-            await client.async_get_data()
-            return True
+
+            response = await self.hass.async_add_executor_job(
+                requests.get, f"{api_url}/tankstation/by-id/{station_id}"
+            )
+            data = response.json()
+
+            if "status" in data and data["status"] == 500:
+                raise Exception("Invalid api_url or station_id")
+            tank_station_name = "{} {}".format(
+                data["data"]["city"], data["data"]["name"]
+            )
+
+            fuel_types = []
+
+            prices = data["data"]["prices"]
+            for price in prices:
+                fuel_types.append(price["fuelType"])
+
+            return {OPT_STATION_NAME: tank_station_name, OPT_FUEL_TYPES: fuel_types}
         except Exception:  # pylint: disable=broad-except
             pass
-        return False
+        return None
 
 
 class BlueprintOptionsFlowHandler(config_entries.OptionsFlow):
@@ -112,5 +133,6 @@ class BlueprintOptionsFlowHandler(config_entries.OptionsFlow):
     async def _update_options(self):
         """Update config entry options."""
         return self.async_create_entry(
-            title=self.config_entry.data.get(CONF_USERNAME), data=self.options
+            title=self.options.get(OPT_STATION_NAME),
+            data=self.options
         )

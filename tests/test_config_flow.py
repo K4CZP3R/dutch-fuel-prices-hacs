@@ -1,17 +1,11 @@
-"""Test integration_blueprint config flow."""
+"""Test dfp config flow."""
 from unittest.mock import patch
 
 from homeassistant import config_entries, data_entry_flow
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.integration_blueprint.const import (
-    BINARY_SENSOR,
-    DOMAIN,
-    PLATFORMS,
-    SENSOR,
-    SWITCH,
-)
+from custom_components.dfp.const import DOMAIN, PLATFORMS, SENSOR
 
 from .const import MOCK_CONFIG
 
@@ -23,10 +17,10 @@ from .const import MOCK_CONFIG
 def bypass_setup_fixture():
     """Prevent setup."""
     with patch(
-        "custom_components.integration_blueprint.async_setup",
+        "custom_components.dfp.async_setup",
         return_value=True,
     ), patch(
-        "custom_components.integration_blueprint.async_setup_entry",
+        "custom_components.dfp.async_setup_entry",
         return_value=True,
     ):
         yield
@@ -107,4 +101,4 @@ async def test_options_flow(hass):
     assert result["title"] == "test_username"
 
     # Verify that the options were updated
-    assert entry.options == {BINARY_SENSOR: True, SENSOR: False, SWITCH: True}
+    assert entry.options == {SENSOR: False}
